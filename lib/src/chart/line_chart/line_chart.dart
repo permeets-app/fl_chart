@@ -9,7 +9,6 @@ import 'line_chart_painter.dart';
 
 /// Renders a line chart as a widget, using provided [LineChartData].
 class LineChart extends ImplicitlyAnimatedWidget {
-
   /// Determines how the [LineChart] should be look like.
   final LineChartData data;
 
@@ -24,7 +23,6 @@ class LineChart extends ImplicitlyAnimatedWidget {
   /// Creates a [_LineChartState]
   @override
   _LineChartState createState() => _LineChartState();
-
 }
 
 class _LineChartState extends AnimatedWidgetBaseState<LineChart> {
@@ -45,8 +43,62 @@ class _LineChartState extends AnimatedWidgetBaseState<LineChart> {
     final LineChartData showingData = _getDate();
     final LineTouchData touchData = showingData.lineTouchData;
 
+    return MouseRegion(
+      onExit: (d) {
+        final Size chartSize = _getChartSize();
+        if (chartSize == null) {
+          return;
+        }
+
+        final LineTouchResponse response =
+            _touchHandler?.handleTouch(FlLongPressEnd(d.localPosition), chartSize);
+        if (_canHandleTouch(response, touchData)) {
+          touchData.touchCallback(response);
+        }
+      },
+      onEnter: (d) {
+        final RenderBox getBox = context.findRenderObject();
+        final Offset local = getBox.globalToLocal(d.position);
+
+        final Size chartSize = _getChartSize();
+        if (chartSize == null) {
+          return;
+        }
+        final LineTouchResponse response =
+            _touchHandler?.handleTouch(FlLongPressStart(local), chartSize);
+        if (_canHandleTouch(response, touchData)) {
+          touchData.touchCallback(response);
+        }
+      },
+      onHover: (d) {
+        final RenderBox getBox = context.findRenderObject();
+        final Offset local = getBox.globalToLocal(d.position);
+
+        final Size chartSize = _getChartSize();
+        if (chartSize == null) {
+          return;
+        }
+
+        final LineTouchResponse response =
+            _touchHandler?.handleTouch(FlLongPressMoveUpdate(local), chartSize);
+        if (_canHandleTouch(response, touchData)) {
+          touchData.touchCallback(response);
+        }
+      },
+      child: CustomPaint(
+        key: _chartKey,
+        size: getDefaultSize(MediaQuery.of(context).size),
+        painter: LineChartPainter(_withTouchedIndicators(_lineChartDataTween.evaluate(animation)),
+            _withTouchedIndicators(showingData), (touchHandler) {
+          setState(() {
+            _touchHandler = touchHandler;
+          });
+        }, textScale: MediaQuery.of(context).textScaleFactor),
+      ),
+    );
     return GestureDetector(
       onLongPressStart: (d) {
+        print(d.localPosition);
         final Size chartSize = _getChartSize();
         if (chartSize == null) {
           return;
